@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @CrossOrigin("http://localhost:3000")
@@ -22,15 +21,23 @@ public class ClientsController {
     private ClientsService clientsService;
 
     @GetMapping("/{userId}")
-    public List<Clients> clients(@PathVariable Long userId) throws CustomException {
-        List<Clients> clientsList = clientsService.clients(userId);
-        return clientsList;
+    public ResponseEntity<?> clients(@PathVariable Long userId) {
+        try {
+            List<Clients> clientsList = clientsService.clients(userId);
+            return ResponseEntity.ok(clientsList);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @GetMapping("/selected/{clientId}")
-    public Clients getClient(@PathVariable Long clientId) throws CustomException {
-        Clients client = clientsService.getClient(clientId);
-        return client;
+    public  ResponseEntity<?> getClient(@PathVariable Long clientId) {
+        try {
+            Clients client = clientsService.getClient(clientId);
+            return ResponseEntity.ok(client);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PostMapping("/{userId}")

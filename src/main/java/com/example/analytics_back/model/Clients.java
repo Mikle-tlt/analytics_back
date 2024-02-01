@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Getter
@@ -29,9 +27,4 @@ public class Clients {
     @JsonIgnore
     private Users owner;
 
-    public Clients(String name, String contact, Users owner) throws ParseException {
-        this.name = name;
-        this.contact = contact;
-        this.owner = owner;
-    }
 }

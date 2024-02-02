@@ -1,10 +1,8 @@
 package com.example.analytics_back.service;
 
 import com.example.analytics_back.exception.CustomException;
-import com.example.analytics_back.model.Categories;
 import com.example.analytics_back.model.Regions;
 import com.example.analytics_back.model.Users;
-import com.example.analytics_back.repo.CategoriesRepository;
 import com.example.analytics_back.repo.RegionsRepository;
 import com.example.analytics_back.repo.UsersRepository;
 import lombok.RequiredArgsConstructor;

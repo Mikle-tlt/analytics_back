@@ -25,7 +25,6 @@ public class Regions {
     private Users owner;
     @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Points> points;
-   /* @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Offlines> offlines;
-    */
+    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<OfflinePoints> offlinePoints;
 }

@@ -39,14 +39,11 @@ public class Users implements UserDetails {
     private List<Products> products;
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Points> points;
-
- /*
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Offlines> offlines;
-    */
-     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-     @JsonIgnore
-     private List<Clients> clients;
+    private List<OfflinePoints> offlinePoints;
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private List<Clients> clients;
 
     public Users(String username, String password, Role role) {
         this.role = role;

@@ -4,7 +4,7 @@ import com.example.analytics_back.model.Clients;
 import com.example.analytics_back.model.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-
 public interface ClientsRepository extends JpaRepository<Clients, Long> {
+    boolean existsByNameAndContactAndOwner(String name, String contact, Users user);
+    Clients findByNameAndContactAndOwner(String name, String contact, Users user);
 }

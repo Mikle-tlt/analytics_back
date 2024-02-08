@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,10 +25,12 @@ public class OfflinePoints {
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private Regions region;
-   /* @OneToMany(mappedBy = "offline", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "offlinePoints", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<OfflinePointProducts> offlinePointProducts;
+    @OneToMany(mappedBy = "offlinePoints", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<OfflineBuys> offlineBuys;
-    @OneToMany(mappedBy = "offline", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OfflineProducts> offlineProducts;*/
 
     public OfflinePoints(String name, String address, Users owner, Regions region) {
         this.name = name;
@@ -35,21 +38,17 @@ public class OfflinePoints {
         this.owner = owner;
         this.region = region;
     }
-
- /*   public void addOfflineBuy(OfflineBuys offlineBuy) {
-        offlineBuys.add(offlineBuy);
-        offlineBuy.setOffline(this);
+    public double getCostPrice() {
+        return offlineBuys.stream()
+                .mapToDouble(OfflineBuys::getCostPrice)
+                .sum();
     }
-
-    public int getCost() {
-        return offlineBuys.stream().reduce(0, (i, buy) -> i + buy.getCost(), Integer::sum);
+    public double getRevenue() {
+        return offlineBuys.stream()
+                .mapToDouble(OfflineBuys::getRevenue)
+                .sum();
     }
-
-    public int getIncome() {
-        return offlineBuys.stream().reduce(0, (i, buy) -> i + buy.getIncome(), Integer::sum);
+    public double getDifferent() {
+        return getRevenue() - getCostPrice();
     }
-
-    public int getDifferent() {
-        return getIncome() - getCost();
-    }*/
 }

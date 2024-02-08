@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,8 +26,8 @@ public class Points {
     @JsonIgnore
     private Users owner;
 
-  /*  @OneToMany(mappedBy = "points", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Buys> buys;*/
+    @OneToMany(mappedBy = "points", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Buys> buys;
 
     public Points(String address, Regions region, Users owner) {
         this.address = address;

@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,5 +27,9 @@ public class Clients {
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private Users owner;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Buys> buys;
 
 }

@@ -35,6 +35,16 @@ public class OfflinePointsController  {
         }
     }
 
+    @GetMapping("/single/{offlinePointId}")
+    public ResponseEntity<?> getOfflinePoint(@PathVariable Long offlinePointId) {
+        try {
+            OfflinePointsDTO offlinePointsDTO = offlinePointsService.getOfflinePoint(offlinePointId);
+            return ResponseEntity.ok(offlinePointsDTO);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/{userId}")
     public ResponseEntity<?> offlinePointsAdd(@RequestBody OfflinePointsDTO offlinePointsDTO, @PathVariable Long userId) {
         try {

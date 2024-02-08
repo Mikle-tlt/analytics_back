@@ -1,5 +1,6 @@
 package com.example.analytics_back.service;
 
+import com.example.analytics_back.DTO.OfflineBuysDTO;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.OfflineBuys;
 import com.example.analytics_back.model.OfflinePoints;
@@ -32,6 +33,15 @@ public class OfflineBuysService {
                 .sorted(Comparator.comparing(OfflineBuys::getOriginDate))
                 .collect(Collectors.toList());
     }
+    public OfflineBuysDTO getOfflineBuy(Long offlineBuyId) throws CustomException {
+        if (!offlineBuysRepository.existsById(offlineBuyId)) {
+            throw new CustomException("Указанная продажа не найдена!");
+        }
+        OfflineBuys offlineBuys = offlineBuysRepository.getReferenceById(offlineBuyId);
+        return new OfflineBuysDTO(
+                offlineBuys.getId(), offlineBuys.getDate(),
+                offlineBuys.getCostPrice(), offlineBuys.getRevenue(), offlineBuys.getDifferent());
+    }
     public OfflineBuys offlineBuysAdd(String date, Long offlinePointId) throws CustomException, ParseException {
         if (!offlinePointsRepository.existsById(offlinePointId)) {
             throw new CustomException("Указанная оффлайн точка не найдена!");
@@ -56,6 +66,9 @@ public class OfflineBuysService {
             throw new CustomException("Указанная продажа не найдена!");
         }
         OfflineBuys offlineBuy = offlineBuysRepository.findById(offlineBuysId).orElseThrow();
+        if (compareDate(offlineBuy.getToday(), date)) {
+            throw new CustomException("Запрещено создавать продажу на будущую дату!");
+        }
         OfflineBuys updatedOfflineBuy = new OfflineBuys(date, offlineBuy.getOfflinePoints());
         updatedOfflineBuy.setId(offlineBuysId);
         return offlineBuysRepository.save(updatedOfflineBuy);

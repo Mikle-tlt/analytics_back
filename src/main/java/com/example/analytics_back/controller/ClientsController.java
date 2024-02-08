@@ -3,12 +3,16 @@ package com.example.analytics_back.controller;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.Clients;
 import com.example.analytics_back.service.ClientsService;
+import com.example.analytics_back.service.UploadFilesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.List;
 
 @RestController
@@ -19,6 +23,8 @@ public class ClientsController {
 
     @Autowired
     private ClientsService clientsService;
+    @Autowired
+    private UploadFilesService uploadFilesService;
 
     @GetMapping("/{userId}")
     public ResponseEntity<?> clients(@PathVariable Long userId) {
@@ -29,9 +35,8 @@ public class ClientsController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
     @GetMapping("/selected/{clientId}")
-    public  ResponseEntity<?> getClient(@PathVariable Long clientId) {
+    public ResponseEntity<?> getClient(@PathVariable Long clientId) {
         try {
             Clients client = clientsService.getClient(clientId);
             return ResponseEntity.ok(client);
@@ -39,21 +44,19 @@ public class ClientsController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
     @PostMapping("/{userId}")
     public ResponseEntity<?> clientAdd(@RequestBody Clients clients, @PathVariable Long userId) {
         try {
-            Clients client  = clientsService.clientAdd(clients.getName(), clients.getContact(), userId);
+            Clients client = clientsService.clientAdd(clients.getName(), clients.getContact(), userId);
             return ResponseEntity.ok(client);
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
     @PutMapping
     public ResponseEntity<?> clientEdit(@RequestBody Clients clients) {
         try {
-            Clients client  = clientsService.clientEdit(clients.getName(), clients.getContact(), clients.getId());
+            Clients client = clientsService.clientEdit(clients.getName(), clients.getContact(), clients.getId());
             return ResponseEntity.ok(client);
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -65,6 +68,16 @@ public class ClientsController {
             clientsService.clientDelete(clientId);
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+    @PostMapping("/upload-excel/{userId}")
+    public ResponseEntity<?> handleExcelUpload(@RequestParam("excelFile") MultipartFile file, @PathVariable Long userId) {
+        try {
+            uploadFilesService.handleExcelFile(file, userId);
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } catch (CustomException | IOException | ParseException e) {
+            System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }

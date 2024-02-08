@@ -1,5 +1,6 @@
 package com.example.analytics_back.controller;
 
+import com.example.analytics_back.DTO.OfflineBuysDTO;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.OfflineBuys;
 import com.example.analytics_back.service.OfflineBuysService;
@@ -25,6 +26,16 @@ public class OfflineBuysController {
         try {
             List<OfflineBuys> offlineBuys = offlineBuysService.offlineBuys(offlinePointId);
             return ResponseEntity.ok(offlineBuys);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/single/{offlineBuyId}")
+    public ResponseEntity<?> getOfflineBuy(@PathVariable Long offlineBuyId) {
+        try {
+            OfflineBuysDTO offlineBuysDTO = offlineBuysService.getOfflineBuy(offlineBuyId);
+            return ResponseEntity.ok(offlineBuysDTO);
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }

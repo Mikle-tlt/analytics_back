@@ -33,6 +33,17 @@ public class OfflinePointsService {
         return user.getOfflinePoints();
     }
 
+    public OfflinePointsDTO getOfflinePoint(Long offlinePointId) throws CustomException {
+        if (!offlinePointsRepository.existsById(offlinePointId)) {
+            throw new CustomException("Пункт выдачи не найден!");
+        }
+        OfflinePoints offlinePoints = offlinePointsRepository.getReferenceById(offlinePointId);
+        return new OfflinePointsDTO(
+                offlinePoints.getId(), offlinePoints.getAddress(),
+                offlinePoints.getName(), offlinePoints.getRegion().getName(),
+                offlinePoints.getCostPrice(), offlinePoints.getRevenue(), offlinePoints.getDifferent());
+    }
+
     public OfflinePointsDTO offlinePointsAdd(OfflinePointsDTO offlinePointsDTO, Long userId) throws CustomException {
         Users user = usersRepository.findById(userId).orElseThrow();
         if (user == null) {
@@ -42,7 +53,8 @@ public class OfflinePointsService {
         if (region == null) {
             throw new CustomException("Добавляемый регион для пункта выдачи не найден!");
         }
-        OfflinePoints offlinePoints = new OfflinePoints(offlinePointsDTO.getName(), offlinePointsDTO.getAddress(), user, region);
+        OfflinePoints offlinePoints = new OfflinePoints(offlinePointsDTO.getName(),
+                offlinePointsDTO.getAddress(), user, region);
         offlinePointsRepository.save(offlinePoints);
         return offlinePointsConverter.convertToDTO(offlinePoints);
     }
@@ -56,11 +68,13 @@ public class OfflinePointsService {
         if (region == null) {
             throw new CustomException("Добавляемый регион для пункта выдачи не найден!");
         }
-        if (offlinePointsDTO.getAddress().matches(offlinePoints.getAddress()) && offlinePointsDTO.getRegionId() == offlinePoints.getRegion().getId() &&
+        if (offlinePointsDTO.getAddress().matches(offlinePoints.getAddress()) &&
+                offlinePointsDTO.getRegionId() == offlinePoints.getRegion().getId() &&
                 offlinePointsDTO.getName().matches(offlinePoints.getName())) {
             throw new CustomException("Пукнт выдачи не нуждается в обновлнии!");
         }
-        OfflinePoints updatedOfflinePoint = new OfflinePoints(offlinePointsDTO.getName(), offlinePointsDTO.getAddress(), offlinePoints.getOwner(), region);
+        OfflinePoints updatedOfflinePoint = new OfflinePoints(offlinePointsDTO.getName(),
+                offlinePointsDTO.getAddress(), offlinePoints.getOwner(), region);
         updatedOfflinePoint.setId(offlinePointsDTO.getId());
         offlinePointsRepository.save(updatedOfflinePoint);
         return offlinePointsConverter.convertToDTO(updatedOfflinePoint);

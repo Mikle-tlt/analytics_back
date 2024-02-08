@@ -1,7 +1,6 @@
 package com.example.analytics_back.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,9 +24,9 @@ public class OfflineBuys {
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private OfflinePoints offlinePoints;
-
-   /* @OneToMany(mappedBy = "offlineBuy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<OfflineDetails> offlineDetails;*/
+    @OneToMany(mappedBy = "offlineBuy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<OfflineDetails> offlineDetails;
 
     public OfflineBuys(String date, OfflinePoints offlinePoint) throws ParseException {
         this.date = new SimpleDateFormat("yyyy-MM-dd").parse(date);
@@ -47,16 +46,31 @@ public class OfflineBuys {
         return date;
     }
 
-  /*  public int getCost() {
-        return offlineDetails.stream().reduce(0, (i, detail) -> i + (detail.getQuantity() * detail.getOfflineProduct().getProduct().getPrice()), Integer::sum);
+    public double getCostPrice() {
+        if (offlineDetails != null) {
+            return offlineDetails.stream()
+                    .mapToDouble(detail -> detail.getQuantity() * detail.getOfflinePointProducts().getProduct().getPrice())
+                    .sum();
+        } else {
+            return 0;
+        }
     }
 
-    public int getIncome() {
-        return offlineDetails.stream().reduce(0, (i, detail) -> i + (detail.getQuantity() * detail.getPrice()), Integer::sum);
+    public double getRevenue() {
+        if (offlineDetails != null) {
+            return offlineDetails.stream()
+                    .mapToDouble(detail -> detail.getQuantity() * detail.getPrice())
+                    .sum();
+        } else {
+            return 0;
+        }
     }
-*/
-   /* public int getDifferent() {
-        return getIncome() - getCost();
-    }*/
 
+    public double getDifferent() {
+        if (offlineDetails != null) {
+            return getRevenue() - getCostPrice();
+        } else {
+            return 0;
+        }
+    }
 }

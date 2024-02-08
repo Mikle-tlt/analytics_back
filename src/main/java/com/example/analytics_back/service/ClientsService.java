@@ -33,9 +33,12 @@ public class ClientsService {
         return client;
     }
     public Clients clientAdd(String name, String contact, Long userId) throws CustomException {
-        Users user = usersRepository.getReferenceById(userId);
-        if (user == null) {
+        if (!usersRepository.existsById(userId)) {
             throw new CustomException("Ваша учетная запись недоступна для добавления профиля!");
+        }
+        Users user = usersRepository.getReferenceById(userId);
+        if(clientsRepository.existsByNameAndContactAndOwner(name, contact, user)) {
+            throw new CustomException("Клиент с соответствующими данными уже существует в системе!");
         }
         Clients client = new Clients();
         client.setName(name);

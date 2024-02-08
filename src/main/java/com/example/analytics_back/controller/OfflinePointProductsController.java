@@ -1,15 +1,10 @@
 package com.example.analytics_back.controller;
 
 import com.example.analytics_back.DTO.OfflinePointProductsDTO;
-import com.example.analytics_back.DTO.OfflinePointsDTO;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.OfflinePointProducts;
-import com.example.analytics_back.model.OfflinePoints;
-import com.example.analytics_back.repo.OfflinePointsRepository;
 import com.example.analytics_back.service.DTOConvectors.OfflinePointProductsConvector;
-import com.example.analytics_back.service.DTOConvectors.OfflinePointsConverter;
 import com.example.analytics_back.service.OfflinePointProductsService;
-import com.example.analytics_back.service.OfflinePointsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

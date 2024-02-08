@@ -1,9 +1,7 @@
 package com.example.analytics_back.service.DTOConvectors;
 
 import com.example.analytics_back.DTO.OfflinePointsDTO;
-import com.example.analytics_back.DTO.PointsDTO;
 import com.example.analytics_back.model.OfflinePoints;
-import com.example.analytics_back.model.Points;
 import org.springframework.stereotype.Service;
 
 @Service

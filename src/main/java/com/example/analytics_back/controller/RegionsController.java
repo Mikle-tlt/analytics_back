@@ -1,14 +1,12 @@
 package com.example.analytics_back.controller;
 
 import com.example.analytics_back.exception.CustomException;
-import com.example.analytics_back.model.Categories;
 import com.example.analytics_back.model.Regions;
 import com.example.analytics_back.service.RegionsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

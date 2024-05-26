@@ -1,3 +1,4 @@
+/*
 package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.DetailsDTO;
@@ -25,22 +26,20 @@ import static org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted;
 public class UploadFilesService {
 
     private final ProductsRepository productsRepository;
-    private final UsersRepository usersRepository;
     private final PointsRepository pointsRepository;
     private final ClientsService clientsService;
     private final BuysRepository buysRepository;
     private final ClientsRepository clientsRepository;
-    private final BuysService buysService;
     private final CategoriesRepository categoriesRepository;
-    private final DetailsRepository detailsRepository;
     private final DetailsService detailsService;
+    private final UsersService usersService;
 
-    public void handleExcelFile(MultipartFile file, Long userId) throws IOException, CustomException, ParseException {
-        Users user = usersRepository.getReferenceById(userId);
+    public void handleExcelFile(MultipartFile file) throws IOException, CustomException, ParseException {
+        Users user = usersService.getUserInfo();
         InputStream inputStream = file.getInputStream();
         try {
             Workbook workbook = WorkbookFactory.create(inputStream);
-            Sheet sheet = workbook.getSheetAt(0); // Предполагается, что данные находятся на первом листе
+            Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.iterator();
 
             int numberOfRow = 0;
@@ -176,7 +175,8 @@ public class UploadFilesService {
                 //если нет, то добавляем его в базу
                 Clients clients = null;
                 if (!clientsRepository.existsByNameAndContactAndOwner(clientName, contactData, user)) {
-                    clients = clientsService.clientAdd(clientName, contactData, userId);
+                    Clients addedClient = new Clients(clientName, contactData);
+                    clients = clientsService.clientAdd(addedClient);
                 } else {
                     clients = clientsRepository.findByNameAndContactAndOwner(clientName, contactData, user);
                 }
@@ -198,7 +198,7 @@ public class UploadFilesService {
 
                 assert product != null;
                 DetailsDTO detailsDTO = new DetailsDTO(product.getId(), quantity, cost);
-                detailsService.detailAdd(buy.getId(), detailsDTO);
+                detailsService.buyDetailAdd(buy.getId(), detailsDTO);
             }
         } catch (CustomException e) {
             throw e;
@@ -233,3 +233,4 @@ public class UploadFilesService {
         return date2.after(date1);
     }
 }
+*/

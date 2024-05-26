@@ -1,13 +1,11 @@
 package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.BuysDTO;
-import com.example.analytics_back.DTO.OfflineDetailsDTO;
-import com.example.analytics_back.DTO.ProductDTO;
 import com.example.analytics_back.exception.CustomException;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.model.*;
 import com.example.analytics_back.repo.BuysRepository;
 import com.example.analytics_back.repo.ClientsRepository;
-import com.example.analytics_back.repo.PointsRepository;
 import com.example.analytics_back.service.DTOConvectors.BuysDTOConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,62 +21,60 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BuysService {
     private final BuysRepository buysRepository;
-    private final ClientsRepository clientsRepository;
-    private final PointsRepository pointsRepository;
     private final BuysDTOConverter buysDTOConverter;
+    private final ClientsService clientsService;
+    private final PointsService pointsService;
+    private final ClientsRepository clientsRepository;
 
-    public List<Buys> onlineBuys(Long clientId) throws CustomException {
-        if (!clientsRepository.existsById(clientId)) {
-            throw new CustomException("Указанная клиент не найден!");
-        }
-        Clients client = clientsRepository.findById(clientId).orElseThrow();
-        return client.getBuys();
+    public Buys getBuy(Long buyId) {
+        return buysRepository.findById(buyId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить данные покупки!"));
     }
-
-    public BuysDTO getBuy(Long buyId) throws CustomException {
-        if (!buysRepository.existsById(buyId)) {
-            throw new CustomException("Указанная покупка не найдена!");
-        }
-        Buys buys = buysRepository.getReferenceById(buyId);
+    public BuysDTO getBuyDTO(Long buyId) {
+        Buys buys = getBuy(buyId);
         return new BuysDTO(buyId, buys.getDate(), buys.getPoints().getId(),
                 buys.getPoints().getAddress(), buys.getCostPrice(), buys.getRevenue(), buys.getDifferent());
     }
-
+    public List<BuysDTO> getOnlineBuys(Long clientId) {
+        Clients client = clientsService.getClient(clientId);
+        List<Buys> buys = client.getBuys();
+        return buys.stream()
+                .map(buysDTOConverter::convertToDTO)
+                .toList();
+    }
     public BuysDTO onlineBuyAdd(Long clientId, BuysDTO buysDTO) throws CustomException, ParseException {
-        if (!clientsRepository.existsById(clientId)) {
-            throw new CustomException("Указанный клиент не найден!");
-        }
-        if (!pointsRepository.existsById(buysDTO.getPointId())) {
-            throw new CustomException("Указанный пункт выдачи не найден!");
-        }
-        Clients client = clientsRepository.findById(clientId).orElseThrow();
-        Points points = pointsRepository.getReferenceById(buysDTO.getPointId());
+        Clients client = clientsService.getClient(clientId);
+        Points points = pointsService.getPoint(buysDTO.getPointId());
         Buys buys = new Buys(buysDTO.getDate(), points, client);
         if (compareDate(buys.getToday(), buysDTO.getDate())) {
             throw new CustomException("Запрещено создавать покупку на будущую дату!");
         }
         if (buysRepository.existsByDateAndPointsAndClient(new SimpleDateFormat("yyyy-MM-dd")
                 .parse(buysDTO.getDate()), points, client)) {
-            throw new CustomException("Покупка с указанной датой и пунктом выдачи уже существует!");
+            throw new CustomException("Покупка с указанной датой и местом выдачи уже была добавлена ранее!");
+        }
+        if (client.getDate() == null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            client.setDate(dateFormat.parse(buysDTO.getDate()));
+            clientsRepository.save(client);
         }
         buysRepository.save(buys);
         return buysDTOConverter.convertToDTO(buys);
     }
 
     public BuysDTO onlineBuyEdit(BuysDTO buysDTO) throws CustomException, ParseException {
-        if (!buysRepository.existsById(buysDTO.getId())) {
-            throw new CustomException("Указанная покупка не найдена!");
-        }
-        if (!pointsRepository.existsById(buysDTO.getPointId())) {
-            throw new CustomException("Указанный пункт выдачи не найден!");
-        }
-        Points points = pointsRepository.getReferenceById(buysDTO.getPointId());
-        Buys buys = buysRepository.getReferenceById(buysDTO.getId());
+        Points points = pointsService.getPoint(buysDTO.getPointId());
+        Buys buys = getBuy(buysDTO.getId());
+        Clients client = clientsService.getClient(buys.getClient().getId());
         if (buys.getDate().matches(buysDTO.getDate()) && buys.getPoints().getId() == buysDTO.getPointId()) {
             throw new CustomException("Данные о покупке не нуждаются в обновлении");
         }
         if (compareDate(buys.getToday(), buysDTO.getDate())) {
             throw new CustomException("Запрещено создавать покупку на будущую дату!");
+        }
+        if (buysRepository.existsByDateAndPointsAndClient(new SimpleDateFormat("yyyy-MM-dd")
+                .parse(buysDTO.getDate()), points, client)) {
+            throw new CustomException("Покупка с указанной датой и местом выдачи уже была добавлена ранее!");
         }
         Buys updatedBuys = new Buys(buysDTO.getDate(), points, buys.getClient());
         updatedBuys.setId(buysDTO.getId());
@@ -94,9 +90,7 @@ public class BuysService {
     }
 
     public void onlineBuyDelete(Long buyId) throws CustomException {
-        if (!buysRepository.existsById(buyId)) {
-            throw new CustomException("Указанная покупка не найдена!");
-        }
-        buysRepository.deleteById(buyId);
+        Buys buys = getBuy(buyId);
+        buysRepository.delete(buys);
     }
 }

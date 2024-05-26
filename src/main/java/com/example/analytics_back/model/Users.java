@@ -2,7 +2,6 @@ package com.example.analytics_back.model;
 
 import com.example.analytics_back.model.enums.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,7 +21,6 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 public class Users implements UserDetails {
-    @Setter(AccessLevel.NONE)
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false, updatable = false)

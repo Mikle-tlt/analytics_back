@@ -19,11 +19,12 @@ import java.util.Map;
 public class OnlineGrowthController {
     @Autowired
     private OnlineGrowthService onlineGrowthService;
-    @GetMapping("{userId}/filter/{productId}/{withDate}/{byDate}")
-    public ResponseEntity<?> xyzFiltered(@PathVariable Long userId, @PathVariable Long productId,
-                                         @PathVariable String withDate, @PathVariable String byDate) {
+    @GetMapping("/filter/{productId}/{withDate}/{byDate}")
+    public ResponseEntity<?> growth(@PathVariable Long productId,
+                                    @PathVariable String withDate,
+                                    @PathVariable String byDate) {
         try {
-            Map<String, Object> result = onlineGrowthService.growth(userId, productId, withDate, byDate);
+            Map<String, Object> result = onlineGrowthService.growth(productId, withDate, byDate);
             return ResponseEntity.ok(result);
         } catch (CustomException | ParseException | IOException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

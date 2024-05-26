@@ -7,13 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import com.example.analytics_back.model.Users;
 
 @RestController
-@CrossOrigin("http://localhost:3000")
 @RequiredArgsConstructor
-public class LoginController {
+public class AuthController {
 
     @Autowired
     private UsersService usersService;
@@ -21,11 +21,21 @@ public class LoginController {
     @PostMapping("/auth")
     public ResponseEntity<?> login(@RequestBody Users user){
         try {
-            Users authenticatedUser = usersService.authenticate(user);
+            String authenticatedUser = usersService.authenticate(user);
             return ResponseEntity.ok(authenticatedUser);
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
+    @PostMapping("/registration")
+    public ResponseEntity<?> registration(@RequestBody Users user) {
+        try {
+            Users addedUser = usersService.registration(user);
+            return ResponseEntity.ok(addedUser);
+        } catch (CustomException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

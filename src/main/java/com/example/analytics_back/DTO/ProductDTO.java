@@ -19,4 +19,9 @@ public class ProductDTO {
         this.price = price;
         this.categoryId = categoryId;
     }
+    public ProductDTO(String name, double price, Long categoryId) {
+        this.name = name;
+        this.price = price;
+        this.categoryId = categoryId;
+    }
 }

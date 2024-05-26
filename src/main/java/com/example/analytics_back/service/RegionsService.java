@@ -1,55 +1,57 @@
 package com.example.analytics_back.service;
 
 import com.example.analytics_back.exception.CustomException;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.model.Regions;
 import com.example.analytics_back.model.Users;
 import com.example.analytics_back.repo.RegionsRepository;
-import com.example.analytics_back.repo.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RegionsService {
-    private final UsersRepository usersRepository;
     private final RegionsRepository regionsRepository;
+    private final UsersService usersService;
 
-    public List<Regions> regions(Long userId) throws CustomException {
-        Users user = usersRepository.findById(userId).orElseThrow();
-        if (user == null) {
-            throw new CustomException("Невозможно получить данные регионов!");
-        }
+    public Regions getRegion(Long regionId) {
+        return regionsRepository.findById(regionId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить данные региона!"));
+    }
+
+    public List<Regions> getRegions() throws CustomException {
+        Users user = usersService.getUserInfo();
         return user.getRegions();
     }
 
-    public Regions regionAdd(String name, Long userId) throws CustomException {
-        Users user = usersRepository.getReferenceById(userId);
-        if (user == null) {
-            throw new CustomException("Вы не можете добавить данные для региона!");
+    public Regions regionAdd(String name) throws CustomException {
+        Users user = usersService.getUserInfo();
+        if (regionsRepository.existsByNameAndOwner(name, user)) {
+            throw new CustomException("Регион \"" + name + "\" уже существует в системе!");
         }
         Regions regions = new Regions();
         regions.setName(name);
         regions.setOwner(user);
         return regionsRepository.save(regions);
     }
-    public Regions regionEdit(String name, Long categoryId) throws CustomException {
-        Regions region = regionsRepository.findById(categoryId).orElseThrow();
-        if (region == null) {
-            throw new CustomException("Регион не найден в системе!");
+    public Regions regionEdit(Regions region) throws CustomException {
+        Users user = usersService.getUserInfo();
+        Regions updatedRegion = getRegion(region.getId());
+        if (!Objects.equals(region.getName(), updatedRegion.getName()) &&
+                regionsRepository.existsByNameAndOwner(region.getName(), user)) {
+            throw new CustomException("Регион \"" + region.getName() + "\" уже существует в системе!");
         }
-        region.setName(name);
-        regionsRepository.save(region);
-        return region;
+        updatedRegion.setName(region.getName());
+        regionsRepository.save(updatedRegion);
+        return updatedRegion;
     }
-    public void regionDelete(Long categoryId) throws CustomException {
-        Regions region = regionsRepository.findById(categoryId).orElseThrow();
-        if (region == null) {
-            throw new CustomException("Регион не найден в системе!");
-        }
-        regionsRepository.deleteById(categoryId);
+    public void regionDelete(Long regionId) throws CustomException {
+        Regions region = getRegion(regionId);
+        regionsRepository.delete(region);
     }
 }

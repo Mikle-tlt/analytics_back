@@ -13,12 +13,14 @@ public class DetailsDTO {
     private int quantity;
     private double price;
     private boolean oldProduct;
+    private String category;
 
-    public DetailsDTO(Long id, Long productId, int quantity, double price) {
+    public DetailsDTO(Long id, Long productId, int quantity, double price, String category) {
         this.id = id;
         this.productId = productId;
         this.quantity = quantity;
         this.price = price;
+        this.category = category;
     }
     public DetailsDTO(Long productId, int quantity, double price) {
         this.productId = productId;

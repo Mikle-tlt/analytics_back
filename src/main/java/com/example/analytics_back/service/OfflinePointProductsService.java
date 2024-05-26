@@ -1,12 +1,10 @@
 package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.OfflinePointProductsDTO;
-import com.example.analytics_back.DTO.ProductDTO;
 import com.example.analytics_back.exception.CustomException;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.model.*;
 import com.example.analytics_back.repo.OfflinePointProductsRepository;
-import com.example.analytics_back.repo.OfflinePointsRepository;
-import com.example.analytics_back.repo.ProductsRepository;
 import com.example.analytics_back.service.DTOConvectors.OfflinePointProductsConvector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,26 +19,25 @@ public class OfflinePointProductsService {
 
     private final OfflinePointProductsConvector offlinePointProductsConvector;
     private final OfflinePointProductsRepository offlinePointProductsRepository;
-    private final OfflinePointsRepository offlinePointsRepository;
-    private final ProductsRepository productsRepository;
+    private final OfflinePointsService offlinePointsService;
+    private final ProductsService productsService;
 
-    public List<OfflinePointProducts> offlinePointProducts(Long offlinePointId) throws CustomException {
-        if (!offlinePointsRepository.existsById(offlinePointId)) {
-            throw new CustomException("Невозможно получить данные продуктов!");
-        }
-        OfflinePoints offlinePoints = offlinePointsRepository.getReferenceById(offlinePointId);
-        return offlinePoints.getOfflinePointProducts();
+    public OfflinePointProducts getOfflinePointProduct(Long offlinePointProductId) {
+        return offlinePointProductsRepository.findById(offlinePointProductId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить данные товара в наличии!"));
+    }
+
+    public List<OfflinePointProductsDTO> getOfflinePointProducts(Long offlinePointId) {
+        OfflinePoints offlinePoint = offlinePointsService.getOfflinePoint(offlinePointId);
+        List<OfflinePointProducts> offlinePointProducts = offlinePoint.getOfflinePointProducts();
+        return offlinePointProducts.stream()
+                .map(offlinePointProductsConvector::convertToDTO)
+                .toList();
     }
     public OfflinePointProductsDTO offlinePointProductsAdd(OfflinePointProductsDTO offlinePointProductsDTO,
                                               Long offlinePointId) throws CustomException {
-        if (!productsRepository.existsById(offlinePointProductsDTO.getProductId())) {
-            throw new CustomException("Выбранный товар не найден!");
-        }
-        if (!offlinePointsRepository.existsById(offlinePointId)) {
-            throw new CustomException("Указанная оффлайн точка не найдена!");
-        }
-        Products product = productsRepository.getReferenceById(offlinePointProductsDTO.getProductId());
-        OfflinePoints offlinePoint = offlinePointsRepository.getReferenceById(offlinePointId);
+        Products product = productsService.getProduct(offlinePointProductsDTO.getProductId());
+        OfflinePoints offlinePoint = offlinePointsService.getOfflinePoint(offlinePointId);
         if (offlinePointProductsRepository.existsByProductAndOfflinePoints(product, offlinePoint)) {
             throw new CustomException("Данный товар уже добавлен в список наличия!");
         }
@@ -51,32 +48,19 @@ public class OfflinePointProductsService {
     }
     public OfflinePointProductsDTO offlinePointProductsEdit(OfflinePointProductsDTO offlinePointProductsDTO)
             throws CustomException {
-        if (!offlinePointProductsRepository.existsById(offlinePointProductsDTO.getId())) {
-            throw new CustomException("Данный товар отсутствует в списки наличия!");
-        }
-        if (!productsRepository.existsById(offlinePointProductsDTO.getProductId())) {
-            throw new CustomException("Выбранный товар не найден!");
-        }
-        OfflinePointProducts offlinePointProduct = offlinePointProductsRepository
-                .getReferenceById(offlinePointProductsDTO.getId());
-        if (!offlinePointsRepository.existsById(offlinePointProduct.getOfflinePoints().getId())) {
-            throw new CustomException("Указанная оффлайн точка не найдена!");
-        }
-        if (offlinePointProductsDTO.getProductId() == offlinePointProduct.getProduct().getId()
-                && offlinePointProductsDTO.getQuantity() == offlinePointProduct.getQuantity()) {
+        OfflinePointProducts updatedOfflinePointProduct = getOfflinePointProduct(offlinePointProductsDTO.getId());
+        Products product = productsService.getProduct(offlinePointProductsDTO.getProductId());
+        if (offlinePointProductsDTO.getProductId() == updatedOfflinePointProduct.getProduct().getId()
+                && offlinePointProductsDTO.getQuantity() == updatedOfflinePointProduct.getQuantity()) {
             throw new CustomException("Данный товар не нуждается в обновлении!");
         }
-        Products product = productsRepository.getReferenceById(offlinePointProductsDTO.getProductId());
-        OfflinePointProducts offlinePointProduct1 = new OfflinePointProducts(offlinePointProductsDTO.getQuantity(),
-                product, offlinePointProduct.getOfflinePoints());
-        offlinePointProduct1.setId(offlinePointProduct.getId());
-        offlinePointProductsRepository.save(offlinePointProduct1);
-        return offlinePointProductsConvector.convertToDTO(offlinePointProduct);
+        updatedOfflinePointProduct.setQuantity(offlinePointProductsDTO.getQuantity());
+        updatedOfflinePointProduct.setProduct(product);
+        offlinePointProductsRepository.save(updatedOfflinePointProduct);
+        return offlinePointProductsConvector.convertToDTO(updatedOfflinePointProduct);
     }
-    public void offlinePointProductsDelete(Long offlinePointProductId) throws CustomException {
-        if (!offlinePointProductsRepository.existsById(offlinePointProductId)) {
-            throw new CustomException("Данный товар отсутствует в списки наличия!");
-        }
-        offlinePointProductsRepository.deleteById(offlinePointProductId);
+    public void offlinePointProductsDelete(Long offlinePointProductId) {
+        OfflinePointProducts offlinePointProduct = getOfflinePointProduct(offlinePointProductId);
+        offlinePointProductsRepository.delete(offlinePointProduct);
     }
 }

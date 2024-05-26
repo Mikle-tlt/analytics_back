@@ -2,14 +2,12 @@ package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.ProductDTO;
 import com.example.analytics_back.exception.CustomException;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.model.*;
-import com.example.analytics_back.repo.CategoriesRepository;
 import com.example.analytics_back.repo.ProductsRepository;
-import com.example.analytics_back.repo.UsersRepository;
 import com.example.analytics_back.service.DTOConvectors.ProductDTOConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,28 +17,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductsService {
 
-    private final UsersRepository usersRepository;
     private final ProductsRepository productsRepository;
-    private final CategoriesRepository categoriesRepository;
     private final ProductDTOConverter productDTOConverter;
+    private final UsersService usersService;
+    private final CategoriesService categoriesService;
 
-    public List<Products> products(Long userId) throws CustomException {
-        Users user = usersRepository.findById(userId).orElseThrow();
-        if (user == null) {
-            throw new CustomException("Невозможно получить данные продуктов!");
-        }
-        return user.getProducts();
+    public Products getProduct(Long productId) {
+        return productsRepository.findById(productId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить данные товара!"));
     }
-    public ProductDTO productAdd(ProductDTO productDTO, Long userId) throws CustomException {
-        Users user = usersRepository.getReferenceById(userId);
-        if (user == null) {
-            throw new CustomException("Вы не можете добавить данные для товара!");
-        }
-        Categories category = categoriesRepository.findById(productDTO.getCategoryId()).orElseThrow();
-        if (category == null) {
-            throw new CustomException("Добавляемая категория товара не найдена!");
-        }
-        if (productsRepository.findByNameAndCategoryAndOwner(productDTO.getName(), category, user) != null) {
+    public List<ProductDTO> getProducts() {
+        Users user = usersService.getUserInfo();
+        List<Products> productsList = user.getProducts();
+        return productsList.stream()
+                .map(productDTOConverter::convertToDTO)
+                .toList();
+    }
+    public ProductDTO productAdd(ProductDTO productDTO) throws CustomException {
+        Users user = usersService.getUserInfo();
+        Categories category = categoriesService.getCategory(productDTO.getCategoryId());
+        if (getByNameAndCategoryAndOwner(productDTO.getName(), category, user) != null) {
             throw new CustomException("Товар с данным названием и категорией уже существует!");
         }
         Products product = new Products(user, category, productDTO.getName(), productDTO.getPrice());
@@ -48,29 +44,29 @@ public class ProductsService {
         return productDTOConverter.convertToDTO(product);
     }
     public ProductDTO productEdit(ProductDTO productDTO) throws CustomException {
-        Products product = productsRepository.getReferenceById(productDTO.getId());
-        if (product == null) {
-            throw new CustomException("Изменяемый товар не найден!");
+        Products product = getProduct(productDTO.getId());
+        Categories category = categoriesService.getCategory(productDTO.getCategoryId());
+        if (product.getName().matches(productDTO.getName()) &&
+                product.getCategory().getId().equals(productDTO.getCategoryId())) {
+            product.setPrice(productDTO.getPrice());
+            productsRepository.save(product);
+            return productDTOConverter.convertToDTO(product);
         }
-        Categories category = categoriesRepository.findById(productDTO.getCategoryId()).orElseThrow();
-        if (category == null) {
-            throw new CustomException("Добавляемая категория товара не найдена!");
-        }
-        if (!product.getName().matches(productDTO.getName()) &&
-                productsRepository.findByNameAndCategoryAndOwner(productDTO.getName(), category, product.getOwner()) != null) {
+        if (productsRepository.existsByNameAndCategoryAndOwner(productDTO.getName(), category, product.getOwner())) {
             throw new CustomException("Товар с данным названием и категорией уже существует!");
         }
-        Products updatedProduct = new Products(product.getOwner(), category, productDTO.getName(), productDTO.getPrice());
-        updatedProduct.setId(product.getId());
-        productsRepository.save(updatedProduct);
-        return productDTOConverter.convertToDTO(updatedProduct);
+        product.setName(productDTO.getName());
+        product.setPrice(productDTO.getPrice());
+        product.setCategory(category);
+        productsRepository.save(product);
+        return productDTOConverter.convertToDTO(product);
     }
 
-    public void productDelete(Long productId) throws CustomException {
-        Products product = productsRepository.findById(productId).orElseThrow();
-        if (product == null) {
-            throw new CustomException("Продукт не найден в системе!");
-        }
-        productsRepository.deleteById(productId);
+    public void productDelete(Long productId) {
+        Products product = getProduct(productId);
+        productsRepository.delete(product);
+    }
+    public Products getByNameAndCategoryAndOwner(String productName, Categories category, Users productOwner) {
+        return productsRepository.findByNameAndCategoryAndOwner(productName, category, productOwner);
     }
 }

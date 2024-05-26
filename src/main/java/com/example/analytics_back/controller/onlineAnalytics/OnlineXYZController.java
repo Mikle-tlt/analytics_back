@@ -20,11 +20,11 @@ public class OnlineXYZController {
     @Autowired
     private OnlineXYZService onlineXYZService;
 
-    @GetMapping("{userId}/filter/{withDate}/{byDate}")
-    public ResponseEntity<?> xyzFiltered(@PathVariable Long userId,
-                                         @PathVariable String withDate, @PathVariable String byDate) {
+    @GetMapping("/filter/{withDate}/{byDate}")
+    public ResponseEntity<?> xyzFiltered(@PathVariable String withDate,
+                                         @PathVariable String byDate) {
         try {
-            Map<String, Object> result = onlineXYZService.xyzFiltered(userId, withDate, byDate);
+            Map<String, Object> result = onlineXYZService.xyzFiltered(withDate, byDate);
             return ResponseEntity.ok(result);
         } catch (CustomException | ParseException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

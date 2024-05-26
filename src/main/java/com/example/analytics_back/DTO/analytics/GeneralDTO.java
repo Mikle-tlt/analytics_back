@@ -1,4 +1,4 @@
-package com.example.analytics_back.DTO.onlineAnalytics;
+package com.example.analytics_back.DTO.analytics;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class OnlineGeneralDTO {
+public class GeneralDTO {
     private Long idProduct;
     private String productName;
     private String categoryName;
@@ -15,8 +15,8 @@ public class OnlineGeneralDTO {
     private Double costPrice;
     private Double different;
 
-    public OnlineGeneralDTO(Long idProduct, String productName, String categoryName, int quantity,
-                            Double costPrice, Double revenue, Double different) {
+    public GeneralDTO(Long idProduct, String productName, String categoryName, int quantity,
+                      Double costPrice, Double revenue, Double different) {
         this.idProduct = idProduct;
         this.productName = productName;
         this.categoryName = categoryName;

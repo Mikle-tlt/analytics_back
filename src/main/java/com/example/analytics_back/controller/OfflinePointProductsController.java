@@ -2,39 +2,34 @@ package com.example.analytics_back.controller;
 
 import com.example.analytics_back.DTO.OfflinePointProductsDTO;
 import com.example.analytics_back.exception.CustomException;
-import com.example.analytics_back.model.OfflinePointProducts;
-import com.example.analytics_back.service.DTOConvectors.OfflinePointProductsConvector;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.service.OfflinePointProductsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin("http://localhost:3000")
 @RequiredArgsConstructor
 @RequestMapping("/offline/points/products")
+@PreAuthorize("hasRole('MANAGER')")
 public class OfflinePointProductsController {
 
     @Autowired
     private OfflinePointProductsService offlinePointProductsService;
-    @Autowired
-    private OfflinePointProductsConvector offlinePointProductsConvector;
 
     @GetMapping("/{offlinePointId}")
-    public ResponseEntity<?> offlinePointProducts(@PathVariable Long offlinePointId) {
+    public ResponseEntity<?> getOfflinePointProducts(@PathVariable Long offlinePointId) {
         try {
-            List<OfflinePointProducts> offlinePointProducts = offlinePointProductsService
-                    .offlinePointProducts(offlinePointId);
-            List<OfflinePointProductsDTO> offlinePointProductsDTOList = offlinePointProducts.stream()
-                    .map(offlinePointProductsConvector::convertToDTO)
-                    .toList();
+            List<OfflinePointProductsDTO> offlinePointProductsDTOList = offlinePointProductsService
+                    .getOfflinePointProducts(offlinePointId);
             return ResponseEntity.ok(offlinePointProductsDTOList);
-        } catch (CustomException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
@@ -45,6 +40,8 @@ public class OfflinePointProductsController {
             OfflinePointProductsDTO offlinePointProductsDTO = offlinePointProductsService
                     .offlinePointProductsAdd(OfflinePointProductsDTO, offlinePointId);
             return ResponseEntity.ok(offlinePointProductsDTO);
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -53,9 +50,11 @@ public class OfflinePointProductsController {
     @PutMapping
     public ResponseEntity<?> offlinePointProductsEdit(@RequestBody OfflinePointProductsDTO OfflinePointProductsDTO) {
         try {
-            OfflinePointProductsDTO offlinePointProductsDTO = offlinePointProductsService
+            OfflinePointProductsDTO updatedOfflinePointProduct = offlinePointProductsService
                     .offlinePointProductsEdit(OfflinePointProductsDTO);
-            return ResponseEntity.ok(offlinePointProductsDTO);
+            return ResponseEntity.ok(updatedOfflinePointProduct);
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -66,8 +65,8 @@ public class OfflinePointProductsController {
         try {
             offlinePointProductsService.offlinePointProductsDelete(offlinePointProductId);
             return ResponseEntity.status(HttpStatus.OK).build();
-        } catch (CustomException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

@@ -1,13 +1,13 @@
 package com.example.analytics_back.service.onlineAnalytics;
 
-import com.example.analytics_back.DTO.onlineAnalytics.OnlineGeneralDTO;
+import com.example.analytics_back.DTO.analytics.GeneralDTO;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.Details;
 import com.example.analytics_back.model.Products;
 import com.example.analytics_back.model.Users;
 import com.example.analytics_back.repo.DetailsRepository;
 import com.example.analytics_back.repo.ProductsRepository;
-import com.example.analytics_back.repo.UsersRepository;
+import com.example.analytics_back.service.UsersService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,16 +23,13 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class OnlineGeneralService {
-    private final UsersRepository usersRepository;
+    private final UsersService usersService;
     private final ProductsRepository productsRepository;
     private final DetailsRepository detailsRepository;
-    public List<OnlineGeneralDTO> general(Long userId) throws CustomException {
-        if(!usersRepository.existsById(userId)){
-            throw new CustomException("Пользователь не обнаружен, невозможно получить данные!");
-        }
-        Users users = usersRepository.findById(userId).orElseThrow();
-        List<Products> products = productsRepository.findAllByOwner(users);
-        List<OnlineGeneralDTO> onlineGeneralDTOList = new ArrayList<>();
+    public List<GeneralDTO> general() throws CustomException {
+        Users user = usersService.getUserInfo();
+        List<Products> products = productsRepository.findAllByOwner(user);
+        List<GeneralDTO> onlineGeneralDTOList = new ArrayList<>();
         for (Products product : products) {
             int quantity = detailsRepository.findAll().stream()
                     .filter(detail -> detail.getProduct() != null && detail.getProduct().getId().equals(product.getId()))
@@ -42,20 +39,16 @@ public class OnlineGeneralService {
             double cost = product.getCostPrice();
             double difference = product.getDifferent();
 
-            OnlineGeneralDTO onlineGeneralDTO = new OnlineGeneralDTO(
+            GeneralDTO onlineGeneralDTO = new GeneralDTO(
                     product.getId(), product.getName(), product.getCategory().getName(),
                     quantity, cost, revenue, difference);
             onlineGeneralDTOList.add(onlineGeneralDTO);
         }
         return onlineGeneralDTOList;
     }
-    public List<OnlineGeneralDTO> generalFiltered(Long userId, String date_with, String date_by)
+    public List<GeneralDTO> generalFiltered(String date_with, String date_by)
             throws CustomException, ParseException {
-        if(!usersRepository.existsById(userId)){
-            throw new CustomException("Пользователь не обнаружен, невозможно получить данные!");
-        }
-        Users users = usersRepository.findById(userId).orElseThrow();
-
+        Users user = usersService.getUserInfo();
         if(compareDate(date_with, date_by)){
             throw new CustomException("Дата начала периода должна быть меньше даты окончания периода!");
         }
@@ -69,8 +62,8 @@ public class OnlineGeneralService {
         Date modified_with = new SimpleDateFormat("yyyy-MM-dd").parse(String.valueOf(with));
         Date modified_by = new SimpleDateFormat("yyyy-MM-dd").parse(String.valueOf(by));
 
-        List<Products> products = productsRepository.findAllByOwner(users);
-        List<OnlineGeneralDTO> onlineGeneralDTOList = new ArrayList<>();
+        List<Products> products = productsRepository.findAllByOwner(user);
+        List<GeneralDTO> onlineGeneralDTOList = new ArrayList<>();
 
         for (Products product : products) {
             int quantity = detailsRepository.findAll().stream()
@@ -82,7 +75,7 @@ public class OnlineGeneralService {
             double cost = product.getCostPrice(modified_with, modified_by);
             double difference = product.getDifferent(modified_with, modified_by);
 
-            OnlineGeneralDTO onlineGeneralDTO = new OnlineGeneralDTO(
+            GeneralDTO onlineGeneralDTO = new GeneralDTO(
                     product.getId(), product.getName(), product.getCategory().getName(),
                     quantity, cost, revenue, difference);
             onlineGeneralDTOList.add(onlineGeneralDTO);

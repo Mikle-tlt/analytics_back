@@ -11,7 +11,8 @@ public class DetailsDTOConverter {
                 details.getId(),
                 details.getProduct() != null ? details.getProduct().getId() : null,
                 details.getQuantity(),
-                details.getPrice()
+                details.getPrice(),
+                details.getProduct() != null ? details.getProduct().getCategory().getName() : null
         );
     }
 }

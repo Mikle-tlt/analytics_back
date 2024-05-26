@@ -2,10 +2,8 @@ package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.OfflineDetailsDTO;
 import com.example.analytics_back.exception.CustomException;
-import com.example.analytics_back.model.OfflineBuys;
-import com.example.analytics_back.model.OfflineDetails;
-import com.example.analytics_back.model.OfflinePointProducts;
-import com.example.analytics_back.repo.OfflineBuysRepository;
+import com.example.analytics_back.exception.CustomNotFoundException;
+import com.example.analytics_back.model.*;
 import com.example.analytics_back.repo.OfflineDetailsRepository;
 import com.example.analytics_back.repo.OfflinePointProductsRepository;
 import com.example.analytics_back.service.DTOConvectors.OfflineDetailsDTOConvector;
@@ -19,52 +17,64 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class OfflineDetailsService {
-
-    private final OfflineBuysRepository offlineBuysRepository;
     private final OfflineDetailsRepository offlineDetailsRepository;
     private final OfflinePointProductsRepository offlinePointProductsRepository;
     private final OfflineDetailsDTOConvector offlineDetailsDTOConvector;
+    private final OfflineBuysService offlineBuysService;
+    private final OfflinePointProductsService offlinePointProductsService;
 
-    public List<OfflineDetails> offlineDetails(Long offlineBuyId) throws CustomException {
-        if (!offlineBuysRepository.existsById(offlineBuyId)) {
-            throw new CustomException("Указанная продажа не найдена!");
-        }
-        OfflineBuys offlineBuy = offlineBuysRepository.findById(offlineBuyId).orElseThrow();
-        return offlineBuy.getOfflineDetails();
+    public OfflineDetails getOfflineDetail(Long offlineDetailId) {
+        return offlineDetailsRepository.findById(offlineDetailId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить информацию " +
+                        "о товаре в оффлайн продаже!"));
     }
 
-    public OfflineDetailsDTO offlineDetailAdd(Long offlineBuyId, OfflineDetailsDTO offlineDetailsDTO) throws CustomException {
-        if (!offlineBuysRepository.existsById(offlineBuyId)) {
-            throw new CustomException("Указанная продажа не найдена!");
-        }
-        if (!offlinePointProductsRepository.existsById(offlineDetailsDTO.getProductId())) {
-            throw new CustomException("Указанная товар не найден!");
-        }
-        OfflineBuys offlineBuy = offlineBuysRepository.getReferenceById(offlineBuyId);
-        OfflinePointProducts offlinePointProducts = offlinePointProductsRepository
-                .getReferenceById(offlineDetailsDTO.getProductId());
-        if (offlinePointProducts.getQuantityReal() < offlineDetailsDTO.getQuantity()) {
-            throw new CustomException("Недостаточно товаров!");
-        }
-        offlinePointProducts.setQuantity(offlinePointProducts.getQuantityReal() - offlineDetailsDTO.getQuantity());
-        offlinePointProductsRepository.save(offlinePointProducts);
-
-        OfflineDetails offlineDetails = new OfflineDetails(offlineBuy,
-                offlinePointProducts, offlineDetailsDTO.getQuantity(), offlineDetailsDTO.getPrice());
-
-        offlineDetailsRepository.save(offlineDetails);
-        return offlineDetailsDTOConvector.convertToDTO(offlineDetails);
+    public List<OfflineDetailsDTO> getOfflineDetails(Long offlineBuyId) {
+        OfflineBuys offlineBuy = offlineBuysService.getOfflineBuy(offlineBuyId);
+        List<OfflineDetails> offlineDetails = offlineBuy.getOfflineDetails();
+        return offlineDetails.stream()
+                .map(offlineDetailsDTOConvector::convertToDTO)
+                .toList();
     }
 
-    public void offlineDetailsDelete(Long offlineDetailId) throws CustomException {
-        if (!offlineDetailsRepository.existsById(offlineDetailId)) {
-            throw new CustomException("Товар не найден!");
+    public OfflineDetailsDTO offlineDetailAdd(Long offlineBuyId, OfflineDetailsDTO offlineDetailsDTO)
+            throws CustomException {
+        OfflineBuys offlineBuy = offlineBuysService.getOfflineBuy(offlineBuyId);
+        OfflinePointProducts offlinePointProduct = offlinePointProductsService
+                .getOfflinePointProduct(offlineDetailsDTO.getProductId());
+        if (offlinePointProduct.getQuantityReal() < offlineDetailsDTO.getQuantity()) {
+            int number = offlineDetailsDTO.getQuantity() - offlinePointProduct.getQuantityReal();
+            throw new CustomException("Недостаточно товара \"" + offlinePointProduct.getProduct().getName() + "\". Требуется еще "
+                    + number + " шт.");
         }
-        OfflineDetails offlineDetails = offlineDetailsRepository.getReferenceById(offlineDetailId);
-        OfflinePointProducts offlinePointProducts = offlinePointProductsRepository
-                .getReferenceById(offlineDetails.getOfflinePointProducts().getId());
-        offlinePointProducts.setQuantity(offlinePointProducts.getQuantityReal() + offlineDetails.getQuantity());
+        offlinePointProduct.setQuantity(offlinePointProduct.getQuantityReal() - offlineDetailsDTO.getQuantity());
+        offlinePointProductsRepository.save(offlinePointProduct);
+
+        OfflineDetails offlineDetail = offlineDetailsRepository
+                .findByPriceAndOfflineBuyAndOfflinePointProducts(offlineDetailsDTO.getPrice(),
+                        offlineBuy, offlinePointProduct);
+        if (offlineDetail != null) {
+            offlineDetail.setQuantity(offlineDetail.getQuantity() + offlineDetailsDTO.getQuantity());
+            offlineDetailsRepository.save(offlineDetail);
+            return setOfflineDetailsDTO(offlineDetail, true);
+        }
+        offlineDetail = new OfflineDetails(offlineBuy,
+                offlinePointProduct, offlineDetailsDTO.getQuantity(), offlineDetailsDTO.getPrice());
+        offlineDetailsRepository.save(offlineDetail);
+        return offlineDetailsDTOConvector.convertToDTO(offlineDetail);
+    }
+
+    public void offlineDetailDelete(Long offlineDetailId) {
+        OfflineDetails offlineDetail = getOfflineDetail(offlineDetailId);
+        OfflinePointProducts offlinePointProducts = offlinePointProductsService
+                .getOfflinePointProduct(offlineDetail.getOfflinePointProducts().getId());
+        offlinePointProducts.setQuantity(offlinePointProducts.getQuantityReal() + offlineDetail.getQuantity());
         offlinePointProductsRepository.save(offlinePointProducts);
-        offlineDetailsRepository.deleteById(offlineDetailId);
+        offlineDetailsRepository.delete(offlineDetail);
+    }
+    public OfflineDetailsDTO setOfflineDetailsDTO(OfflineDetails offlineDetails, boolean isOldProduct) {
+        return new OfflineDetailsDTO(offlineDetails.getId(),
+                offlineDetails.getOfflinePointProducts().getProduct().getId(),
+                offlineDetails.getQuantity(), offlineDetails.getPrice(), isOldProduct);
     }
 }

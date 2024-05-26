@@ -2,45 +2,43 @@ package com.example.analytics_back.controller;
 
 import com.example.analytics_back.DTO.ProductDTO;
 import com.example.analytics_back.exception.CustomException;
-import com.example.analytics_back.model.Products;
-import com.example.analytics_back.service.DTOConvectors.ProductDTOConverter;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.service.ProductsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin("http://localhost:3000")
 @RequiredArgsConstructor
 @RequestMapping("/products")
+@PreAuthorize("hasRole('MANAGER')")
 public class ProductsController {
 
     @Autowired
     private ProductsService productsService;
-    @Autowired
-    private ProductDTOConverter productDTOConverter;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> products(@PathVariable Long userId) {
+    @GetMapping
+    public ResponseEntity<?> getProducts() {
         try {
-            List<Products> productsList = productsService.products(userId);
-            List<ProductDTO> productDTOList = productsList.stream()
-                    .map(productDTOConverter::convertToDTO)
-                    .toList();
+            List<ProductDTO> productDTOList = productsService.getProducts();
             return ResponseEntity.ok(productDTOList);
-        } catch (CustomException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (CustomNotFoundException | UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
-    @PostMapping("/{userId}")
-    public ResponseEntity<?> productAdd(@RequestBody ProductDTO productDTO, @PathVariable Long userId) {
+    @PostMapping
+    public ResponseEntity<?> productAdd(@RequestBody ProductDTO productDTO) {
         try {
-            ProductDTO product = productsService.productAdd(productDTO, userId);
+            ProductDTO product = productsService.productAdd(productDTO);
             return ResponseEntity.ok(product);
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -51,6 +49,8 @@ public class ProductsController {
         try {
             ProductDTO product = productsService.productEdit(productDTO);
             return ResponseEntity.ok(product);
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -61,8 +61,8 @@ public class ProductsController {
         try {
             productsService.productDelete(productId);
             return ResponseEntity.status(HttpStatus.OK).build();
-        } catch (CustomException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (CustomNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

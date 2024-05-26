@@ -1,11 +1,11 @@
 package com.example.analytics_back.service.onlineAnalytics;
 
-import com.example.analytics_back.DTO.onlineAnalytics.OnlineXYZDTO;
+import com.example.analytics_back.DTO.analytics.XYZDTO;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.Products;
 import com.example.analytics_back.model.Users;
 import com.example.analytics_back.repo.ProductsRepository;
-import com.example.analytics_back.repo.UsersRepository;
+import com.example.analytics_back.service.UsersService;
 import com.example.analytics_back.service.config.DateService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,15 +24,12 @@ import java.util.*;
 public class OnlineXYZService {
 
     private final ProductsRepository productsRepository;
-    private final UsersRepository usersRepository;
+    private final UsersService usersService;
     private final DateService dateService;
 
-    public Map<String, Object> xyzFiltered(Long userId, String date_with, String date_by)
+    public Map<String, Object> xyzFiltered(String date_with, String date_by)
             throws CustomException, ParseException {
-        if(!usersRepository.existsById(userId)){
-            throw new CustomException("Пользователь не обнаружен, невозможно получить данные!");
-        }
-        Users users = usersRepository.findById(userId).orElseThrow();
+        Users user = usersService.getUserInfo();
         if(dateService.compareDate(date_with, date_by)){
             throw new CustomException("Дата начала периода должна быть меньше даты окончания периода!");
         }
@@ -49,8 +46,8 @@ public class OnlineXYZService {
         long millisecondsDifference = modified_by.getTime() - modified_with.getTime();
         int daysDifference = modified_with != modified_by ? (int) (millisecondsDifference / (1000 * 60 * 60 * 24)) - 1 : 0;
 
-        List<Products> products = productsRepository.findAllByOwner(users);
-        List<OnlineXYZDTO> onlineXYZDTOS = new ArrayList<>();
+        List<Products> products = productsRepository.findAllByOwner(user);
+        List<XYZDTO> onlineXYZDTOS = new ArrayList<>();
         List<Products> productsXCategory = new ArrayList<>();
         List<Products> productsYCategory = new ArrayList<>();
         List<Products> productsZCategory = new ArrayList<>();
@@ -62,25 +59,25 @@ public class OnlineXYZService {
             int standardDeviation = product.standardDeviation(modified_with, modified_by, daysDifference);
             int rms = product.rms(modified_with, modified_by, daysDifference);
             String group = "";
-            if (rms < 10 && rms != 0) {
-                group = "X";
-                productsXCategory.add(product);
-            } else if (rms >= 10 && rms < 25) {
+            if (rms >= 10 && rms < 25) {
                 group = "Y";
                 productsYCategory.add(product);
-            } else if (rms >= 25){
+            } else if (rms < 10) {
                 group = "Z";
                 productsZCategory.add(product);
+            } else {
+                group = "X";
+                productsXCategory.add(product);
             }
-            OnlineXYZDTO onlineXYZDTO = new OnlineXYZDTO(
+            XYZDTO onlineXYZDTO = new XYZDTO(
                     product.getId(), product.getName(), product.getCategory().getName(), revenue,
                     revenueAverage, standardDeviation, rms, group);
             onlineXYZDTOS.add(onlineXYZDTO);
         }
         String descriptionText = generateDescription(productsXCategory, productsYCategory, productsZCategory);
         Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("labelText", descriptionText);
-        resultMap.put("onlineXYZDTOS", onlineXYZDTOS);
+        resultMap.put("label", descriptionText);
+        resultMap.put("result", onlineXYZDTOS);
         return resultMap;
     }
 
@@ -110,14 +107,16 @@ public class OnlineXYZService {
     }
 
     private String addProductNameToDescription(String description, List<Products> productsXYZCategory) {
+        StringBuilder descriptionBuilder = new StringBuilder(description);
         for (int i = 0; i < productsXYZCategory.size(); i++) {
-            description += "\"" + productsXYZCategory.get(i).getName();
+            descriptionBuilder.append("\"").append(productsXYZCategory.get(i).getName());
             if (i + 1 != productsXYZCategory.size()) {
-                description += "\", ";
+                descriptionBuilder.append("\", ");
             } else {
-                description += "\"";
+                descriptionBuilder.append("\"");
             }
         }
+        description = descriptionBuilder.toString();
         return description;
     }
 }

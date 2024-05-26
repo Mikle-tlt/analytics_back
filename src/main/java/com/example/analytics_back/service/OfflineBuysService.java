@@ -2,10 +2,10 @@ package com.example.analytics_back.service;
 
 import com.example.analytics_back.DTO.OfflineBuysDTO;
 import com.example.analytics_back.exception.CustomException;
+import com.example.analytics_back.exception.CustomNotFoundException;
 import com.example.analytics_back.model.OfflineBuys;
 import com.example.analytics_back.model.OfflinePoints;
 import com.example.analytics_back.repo.OfflineBuysRepository;
-import com.example.analytics_back.repo.OfflinePointsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,64 +20,65 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class OfflineBuysService {
-    private final OfflinePointsRepository offlinePointsRepository;
     private final OfflineBuysRepository offlineBuysRepository;
+    private final OfflinePointsService offlinePointsService;
 
-    public List<OfflineBuys> offlineBuys(Long offlinePointId) throws CustomException {
-        if (!offlinePointsRepository.existsById(offlinePointId)) {
-            throw new CustomException("Невозможно получить данные продаж!");
-        }
-        OfflinePoints offlinePoints = offlinePointsRepository.getReferenceById(offlinePointId);
-        return offlinePoints.getOfflineBuys()
-                .stream()
-                .sorted(Comparator.comparing(OfflineBuys::getOriginDate))
-                .collect(Collectors.toList());
+    public OfflineBuys getOfflineBuy(Long offlineBuyId) {
+        return offlineBuysRepository.findById(offlineBuyId)
+                .orElseThrow(() -> new CustomNotFoundException("Невозможно получить данные оффлайн продажи!"));
     }
-    public OfflineBuysDTO getOfflineBuy(Long offlineBuyId) throws CustomException {
-        if (!offlineBuysRepository.existsById(offlineBuyId)) {
-            throw new CustomException("Указанная продажа не найдена!");
-        }
-        OfflineBuys offlineBuys = offlineBuysRepository.getReferenceById(offlineBuyId);
+
+    public OfflineBuysDTO getOfflineBuyDTO(Long offlineBuyId) {
+        OfflineBuys offlineBuys = getOfflineBuy(offlineBuyId);
         return new OfflineBuysDTO(
                 offlineBuys.getId(), offlineBuys.getDate(),
                 offlineBuys.getCostPrice(), offlineBuys.getRevenue(), offlineBuys.getDifferent());
     }
-    public OfflineBuys offlineBuysAdd(String date, Long offlinePointId) throws CustomException, ParseException {
-        if (!offlinePointsRepository.existsById(offlinePointId)) {
-            throw new CustomException("Указанная оффлайн точка не найдена!");
-        }
-        OfflinePoints offlinePoint = offlinePointsRepository.getReferenceById(offlinePointId);
+
+    public List<OfflineBuys> getOfflineBuys(Long offlinePointId) {
+        OfflinePoints offlinePoint = offlinePointsService.getOfflinePoint(offlinePointId);
+        return offlinePoint.getOfflineBuys()
+                .stream()
+                .sorted(Comparator.comparing(OfflineBuys::getOriginDate))
+                .collect(Collectors.toList());
+    }
+    public OfflineBuys offlineBuyAdd(String date, Long offlinePointId) throws CustomException, ParseException {
+        OfflinePoints offlinePoint = offlinePointsService.getOfflinePoint(offlinePointId);
         OfflineBuys offlineBuy = new OfflineBuys(date, offlinePoint);
         if (compareDate(offlineBuy.getToday(), date)) {
             throw new CustomException("Запрещено создавать продажу на будущую дату!");
         }
+        if (offlineBuysRepository.existsByDateAndOfflinePoints(new SimpleDateFormat("yyyy-MM-dd")
+                .parse(date), offlinePoint)) {
+            throw new CustomException("Продажа с указанной датой и оффлайн точкой уже была добавлена ранее!");
+        }
         return offlineBuysRepository.save(offlineBuy);
     }
 
+    public OfflineBuys offlineBuysEdit(OfflineBuys offlineBuy) throws CustomException, ParseException {
+        OfflineBuys updatedOfflineBuy = getOfflineBuy(offlineBuy.getId());
+        if (compareDate(updatedOfflineBuy.getToday(), offlineBuy.getDate())) {
+            throw new CustomException("Запрещено создавать продажу на будущую дату!");
+        }
+        if (updatedOfflineBuy.getDate().matches(offlineBuy.getDate())) {
+            throw new CustomException("Данные о покупке не нуждаются в обновлении");
+        }
+        if (offlineBuysRepository.existsByDateAndOfflinePoints(new SimpleDateFormat("yyyy-MM-dd")
+                .parse(offlineBuy.getDate()), updatedOfflineBuy.getOfflinePoints())) {
+            throw new CustomException("Продажа с указанной датой уже была добавлена ранее!");
+        }
+        updatedOfflineBuy.setDate(offlineBuy.getDate());
+        return offlineBuysRepository.save(updatedOfflineBuy);
+    }
+
+    public void offlineBuysDelete(Long offlineBuyId) {
+        OfflineBuys updatedOfflineBuy = getOfflineBuy(offlineBuyId);
+        offlineBuysRepository.delete(updatedOfflineBuy);
+    }
     public boolean compareDate(String today, String date) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         Date date1 = sdf.parse(today);
         Date date2 = sdf.parse(date);
         return date2.after(date1);
-    }
-
-    public OfflineBuys offlineBuysEdit(String date, Long offlineBuysId) throws CustomException, ParseException {
-        if (!offlineBuysRepository.existsById(offlineBuysId)) {
-            throw new CustomException("Указанная продажа не найдена!");
-        }
-        OfflineBuys offlineBuy = offlineBuysRepository.findById(offlineBuysId).orElseThrow();
-        if (compareDate(offlineBuy.getToday(), date)) {
-            throw new CustomException("Запрещено создавать продажу на будущую дату!");
-        }
-        OfflineBuys updatedOfflineBuy = new OfflineBuys(date, offlineBuy.getOfflinePoints());
-        updatedOfflineBuy.setId(offlineBuysId);
-        return offlineBuysRepository.save(updatedOfflineBuy);
-    }
-
-    public void offlineBuysDelete(Long offlineBuyId) throws CustomException {
-        if (!offlineBuysRepository.existsById(offlineBuyId)) {
-            throw new CustomException("Данная покупка отсутствует в системе!");
-        }
-        offlineBuysRepository.deleteById(offlineBuyId);
     }
 }

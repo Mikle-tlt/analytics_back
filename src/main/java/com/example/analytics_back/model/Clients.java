@@ -32,4 +32,8 @@ public class Clients {
     @JsonIgnore
     private List<Buys> buys;
 
+    public Clients(String name, String contact) {
+        this.name = name;
+        this.contact = contact;
+    }
 }

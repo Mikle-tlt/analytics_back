@@ -1,11 +1,9 @@
 package com.example.analytics_back.service.onlineAnalytics;
 
-import com.example.analytics_back.DTO.onlineAnalytics.TrendResult;
+import com.example.analytics_back.DTO.analytics.TrendResult;
 import com.example.analytics_back.exception.CustomException;
 import com.example.analytics_back.model.Products;
-import com.example.analytics_back.model.Users;
 import com.example.analytics_back.repo.ProductsRepository;
-import com.example.analytics_back.repo.UsersRepository;
 import com.example.analytics_back.service.config.DateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,14 +23,9 @@ import java.util.*;
 public class OnlineGrowthService{
     private final ProductsRepository productsRepository;
     private final DateService dateService;
-    private final UsersRepository usersRepository;
     protected long ONE_DAY = 1000 * 60 * 60 * 24;
-    public Map<String, Object> growth(Long userId, Long productId, String date_with, String date_by)
+    public Map<String, Object> growth(Long productId, String date_with, String date_by)
             throws IOException, ParseException, CustomException {
-        if(!usersRepository.existsById(userId)){
-            throw new CustomException("Пользователь не обнаружен, невозможно получить данные!");
-        }
-        Users users = usersRepository.findById(userId).orElseThrow();
         if(dateService.compareDate(date_with, date_by)){
             throw new CustomException("Дата начала периода должна быть меньше даты окончания периода!");
         }
@@ -56,13 +49,13 @@ public class OnlineGrowthService{
             Date date1 = new Date();
             Date date2 = new Date();
 
-            date1.setTime(with.getTime() - ONE_DAY);
-            date2.setTime(with.getTime() + ONE_DAY);
+            date1.setTime(with.getTime());
+            date2.setTime(with.getTime() + ONE_DAY * 2);
 
             double income1 = product.getRevenue(date1, date2);
 
-            date1.setTime(with.getTime() + ONE_DAY);
-            date2.setTime(with.getTime() + (ONE_DAY * 3));
+            date1.setTime(with.getTime());
+            date2.setTime(with.getTime() + ONE_DAY * 4);
 
             double income2 = product.getRevenue(date1, date2);
 
@@ -76,8 +69,8 @@ public class OnlineGrowthService{
         }
         TrendResult trendResult = detectTrend(days, revenues);
         String trendDirection = trendResult.getTrendDirection();
-        String labelText = String.format("\t\n\tВ итоге анализа темпов продаж по выбранной позиции за данный " +
-                "промежуток времени %s.", trendDirection + ". Это отслеживается с помощью аппроксимации графика");
+        String labelText = "В итоге анализа темпов продаж по выбранной позиции за данный промежуток времени " +
+                trendDirection;
         Map<String, Object> resultMap = new HashMap<>();
         resultMap.put("revenues", revenues);
         resultMap.put("days", days);
